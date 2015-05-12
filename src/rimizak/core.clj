@@ -1,5 +1,25 @@
 (ns rimizak.core)
 
+(defn cross-product [v1 v2]
+	[
+		(- (* (nth v1 1) (nth v2 2)) (* (nth v1 2) (nth v2 1)))
+		(- (* (nth v1 2) (nth v2 0)) (* (nth v1 0) (nth v2 2)))
+		(- (* (nth v1 0) (nth v2 1)) (* (nth v1 1) (nth v2 0)))
+	])
+
+(defn normalized-vector [v]
+	(let [mag (+ (Math/abs (nth v 0))
+							 (Math/abs (nth v 1))
+							 (Math/abs (nth v 2)))]
+		[
+			(/ (nth v 0) mag)
+			(/ (nth v 1) mag)
+			(/ (nth v 2) mag)
+		]
+	))
+
+(defn surface-normal [s]
+	(normalized-vector (cross-product (nth s 0) (nth s 1))))
 
 (defn stl-solid [s]
 	(str "solid Rimizak_Model
@@ -140,7 +160,62 @@ endsolid Rimizak_Model\n"))
     (with-open [w (clojure.java.io/writer out-file-name :append false)]
       (.write w solid))))
 
+(def icosahedron-vertices
+	(let [t (/ (+ 1.0 (Math/sqrt 5.0)) 2.0)]
+		[
+			[-1 t 0]
+			[1 t 0]
+			[-1 (- t) 0]
+			[1 (- t) 0]
 
+			[0 -1 t]
+			[0 1 t]
+			[0 -1 (- t)]
+			[0 1 (- t)]
+
+			[t 0 -1]
+			[t 0 1]
+			[(- t) 0 -1]
+			[(- t) 0 1]
+		]))
+
+(def icosahedron-facets
+	(let [ivs icosahedron-vertices]
+		[
+			[(nth ivs 0)  (nth ivs 11) (nth ivs 5)]
+			[(nth ivs 0)  (nth ivs 5)  (nth ivs 1)]
+			[(nth ivs 0)  (nth ivs 1)  (nth ivs 7)]
+			[(nth ivs 0)  (nth ivs 7)  (nth ivs 10)]
+			[(nth ivs 0)  (nth ivs 10) (nth ivs 11)]
+
+			[(nth ivs 1)  (nth ivs 5)  (nth ivs 9)]
+			[(nth ivs 5)  (nth ivs 11) (nth ivs 4)]
+			[(nth ivs 11) (nth ivs 10) (nth ivs 2)]
+			[(nth ivs 10) (nth ivs 7)  (nth ivs 6)]
+			[(nth ivs 7)  (nth ivs 1)  (nth ivs 8)]
+
+			[(nth ivs 3)  (nth ivs 9)  (nth ivs 4)]
+			[(nth ivs 3)  (nth ivs 4)  (nth ivs 2)]
+			[(nth ivs 3)  (nth ivs 2)  (nth ivs 6)]
+			[(nth ivs 3)  (nth ivs 6)  (nth ivs 8)]
+			[(nth ivs 3)  (nth ivs 8)  (nth ivs 9)]
+
+			[(nth ivs 4)  (nth ivs 9)  (nth ivs 5)]
+			[(nth ivs 2)  (nth ivs 4)  (nth ivs 11)]
+			[(nth ivs 6)  (nth ivs 2)  (nth ivs 10)]
+			[(nth ivs 8)  (nth ivs 6)  (nth ivs 7)]
+			[(nth ivs 9)  (nth ivs 8)  (nth ivs 1)]
+		]))
+
+(defn icosahedron-solid []
+	(map (fn [facet]
+		(stl-facet {:normal (surface-normal facet)
+								:vertices facet}))
+		icosahedron-facets))
+
+
+;(clojure.core/refer 'rimizak.core)
+;(solid-to-file (stl-solid (apply str (icosahedron-solid))) "stl-ico-out.stl")
 ;(solid-to-file (scaled-solid 1 2 3 10 cube-facets) "stl-cube-out.stl")
 ;(solid-to-file (translated-solid [10 10 10] 10 cube-facets) "stl-cube-out3.stl")
 ;(solid-to-file (transformed-solid (comp (partial translate-facets [10 10 10]) (partial scale-facets 10)) cube-facets) "stl-cube-out4.stl")
